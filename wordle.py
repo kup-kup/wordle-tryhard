@@ -56,16 +56,17 @@ class Wordle:
             # "l" in "troll" would be yellow but the second one would be gray,
             # even though the answer has "l" in it.
 
-            'count': defaultdict(int) # letter -> min_count
+            'min_count': defaultdict(int), 
+            'max_count': defaultdict(int), 
         }
     
     def _get_incremental_constraints(self, step_constraints):
-        incremental_constraintss = self._get_constraint_holder()
+        incremental_constraints = self._get_constraint_holder()
 
         # handle green
         for i in range(self.word_length):
             if not self.constraints['green'][i] and step_constraints['green'][i]:
-                incremental_constraintss['green'][i] = step_constraints['green'][i]
+                incremental_constraints['green'][i] = step_constraints['green'][i]
         
         # handle yellow
         for i in range(self.word_length):
@@ -73,21 +74,45 @@ class Wordle:
                 continue
             for step_yellow in step_constraints['yellow'][i]:
                 if step_yellow not in self.constraints['yellow'][i]:
-                    incremental_constraintss['yellow'][i].add(step_yellow)
+                    incremental_constraints['yellow'][i].add(step_yellow)
 
         # handle gray
-        incremental_constraintss['gray'] = step_constraints['gray'] - self.constraints['gray']
+        incremental_constraints['gray'] = step_constraints['gray'] - self.constraints['gray']
 
         # handle count
-        for k, v in step_constraints['count'].items():
-            if self.constraints['count'][k] < v:
-                incremental_constraintss['count'][k] = v
+        for k, v in step_constraints['min_count'].items():
+            if self.constraints['min_count'][k] < v:
+                incremental_constraints['min_count'][k] = v
+        
+        for k, v in step_constraints['max_count'].items():
+            if self.constraints['max_count'].get(k, float('inf')) > v:
+                incremental_constraints['max_count'][k] = v
 
-        return incremental_constraintss
+        return incremental_constraints
     
     def _update_possible_answers(self, step_constraints):
         incremental_constraints = self._get_incremental_constraints(step_constraints)
-        raise NotImplementedError()
+
+        def _filter(word):
+            for i in range(self.word_length):
+
+                # handle green
+                if (
+                    self.constraints['green'][i] is not None
+                    and self.constraints['green'][i] != word[i]
+                ):
+                    return False
+                
+                # handle yellow
+                if word[i] in self.constraints['yellow'][i]:
+                    return False
+                
+                # continue here
+                ...
+                
+            return True
+
+        self.possible_answers = filter(_filter, self.possible_answers)
 
     def add_guess(self, guess):
         assert len(guess) == self.word_length
@@ -103,7 +128,7 @@ class Wordle:
         for i in range(self.word_length):
             if guess[i] == self.answer[i]:
                 step_constraints['green'][i] = guess[i]
-                step_constraints['count'][guess[i]] += 1
+                step_constraints['min_count'][guess[i]] += 1
                 taken[i] = True
         
         # handle yellow
@@ -113,9 +138,14 @@ class Wordle:
                     if taken[j]:
                         continue
                     step_constraints['yellow'][i].add(guess[i])
-                    step_constraints['count'][guess[i]] += 1
+                    step_constraints['min_count'][guess[i]] += 1
                     taken[j] = True
                     break
+
+                # if all is taken, then it is the maximum count
+                else:
+                    step_constraints['max_count'][guess[i]] = step_constraints['min_count'][guess[i]]
+
         
         # handle gray
         for i in range(self.word_length):
