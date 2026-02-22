@@ -75,14 +75,15 @@ class Wordle:
         taken = [False] * self.word_length # specify which letters are used up for count constraint
         new_feedback = ['black'] * self.word_length
 
-        # handle green
         for i in range(self.word_length):
+
+            # handle green
             if guess[i] == self.answer[i]:
                 new_feedback[i] = 'green'
                 taken[i] = True
+                continue
         
-        # handle yellow
-        for i in range(self.word_length): # loop guess
+            # handle yellow
             for j in range(self.word_length): # loop answer
                 if guess[i] == self.answer[j] and not taken[j]:
                     new_feedback[i] = 'yellow'
