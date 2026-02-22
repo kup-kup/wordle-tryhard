@@ -1,4 +1,5 @@
 import random
+from functools import lru_cache
 
 with open('valid_words.txt') as f:
     VALID_WORDS = f.read().splitlines()
@@ -6,7 +7,8 @@ with open('valid_words.txt') as f:
 with open('valid_answers.txt') as f:
     VALID_ANSWERS = f.read().splitlines()
 
-def is_possible(guess, feedback, word: str) -> bool:
+@lru_cache()
+def is_possible(guess: str, feedback: str, word: str) -> bool:
     """check if the word is possible from feedback"""
     assert len(feedback) == len(word) == len(guess), 'guess, feedback and word must be of the same length'
 
@@ -15,6 +17,7 @@ def is_possible(guess, feedback, word: str) -> bool:
     else:
         return False
 
+@lru_cache()
 def get_feedback(guess: str, answer: str) -> list[str]:
     """get feedback from guess and answer"""
     assert len(guess) == len(answer), 'guess and answer must be of the same length'
@@ -50,7 +53,7 @@ class Wordle:
         
         self.max_turn = max_turn
         self.turn = 0
-        self.feedback = []
+        self.feedbacks = []
         self.guesses = []
         self.status = 'playing'
         self.word_length = 5 # no support for other lengths for now
@@ -67,18 +70,25 @@ class Wordle:
         assert len(guess) == self.word_length, 'guess must be of length 5'
         assert guess in VALID_ANSWERS, 'invalid guess'
 
-        new_feedback = get_feedback(guess, self.answer)
+        feedback = get_feedback(guess, self.answer)
 
         # update status
         if guess == self.answer:
             self.status = 'win'
         elif len(self.guesses) >= self.max_turn:
             self.status = 'lose'
-        self.feedback.append(new_feedback)
+        self.feedbacks.append(feedback)
         self.guesses.append(guess)
         self.turn += 1
 
-        return self.status, new_feedback
+        return self.status, feedback
+    
+    def get_score(self):
+        if self.status == 'lose':
+            return -10
+        if self.status == 'win':
+            return self.turn
+        return 0
 
 if __name__ == "__main__":
     wordle = Wordle()
