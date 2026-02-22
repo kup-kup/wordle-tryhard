@@ -1,52 +1,10 @@
 import random
-from collections import defaultdict
-from dataclasses import dataclass
 
 with open('valid_words.txt') as f:
     VALID_WORDS = f.read().splitlines()
 
 with open('valid_answers.txt') as f:
     VALID_ANSWERS = f.read().splitlines()
-
-# @dataclass()
-class Constraints:
-    correct_position: list[None | str] = [None]*5
-    wrong_position: list[set] = [set()]*5
-    missing: set = set()
-    min_count: dict[str, int] = defaultdict(int)
-    max_count: dict[str, int] = defaultdict(int)
-
-def get_incremental_constraints(consts: Constraints, step_consts: Constraints) -> Constraints:
-    incremental_consts = Constraints()
-    word_length = len(consts.correct_position)
-    assert word_length == len(step_consts.wrong_position)
-
-    # handle green
-    for i in range(word_length):
-        if not consts.correct_position[i] and step_consts.correct_position[i]:
-            incremental_consts.correct_position[i] = step_consts.correct_position[i]
-    
-    # handle yellow
-    for i in range(word_length):
-        if not step_consts.wrong_position[i]:
-            continue
-        for step_yellow in step_consts.wrong_position[i]:
-            if step_yellow not in consts.wrong_position[i]:
-                incremental_consts.wrong_position[i].add(step_yellow)
-
-    # handle gray
-    incremental_consts.missing = step_consts.missing - consts.missing
-
-    # handle count
-    for k, v in step_consts.min_count.items():
-        if consts.min_count[k] < v:
-            incremental_consts.min_count[k] = v
-    
-    for k, v in step_consts.max_count.items():
-        if consts.max_count.get(k, float('inf')) > v:
-            incremental_consts.max_count[k] = v
-
-    return incremental_consts
 
 class Wordle:
 
