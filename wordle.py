@@ -1,5 +1,4 @@
 import random
-from functools import lru_cache
 
 with open('valid_words.txt') as f:
     VALID_WORDS = f.read().splitlines()
@@ -7,7 +6,6 @@ with open('valid_words.txt') as f:
 with open('valid_answers.txt') as f:
     VALID_ANSWERS = f.read().splitlines()
 
-@lru_cache()
 def is_possible(guess: str, feedback: str, word: str) -> bool:
     """check if the word is possible from feedback"""
     assert len(feedback) == len(word) == len(guess), 'guess, feedback and word must be of the same length'
@@ -17,7 +15,6 @@ def is_possible(guess: str, feedback: str, word: str) -> bool:
     else:
         return False
 
-@lru_cache()
 def get_feedback(guess: str, answer: str) -> list[str]:
     """get feedback from guess and answer"""
     assert len(guess) == len(answer), 'guess and answer must be of the same length'

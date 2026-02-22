@@ -34,6 +34,7 @@ class RandomAgent(Agent):
         return self.last_guess
     
     def recieve_feedback(self, status, feedback) -> None:
+        assert self.last_guess is not None
         temp = []
         for word in self.possible_answers:
             if wordle.is_possible(self.last_guess, feedback, word):
@@ -69,7 +70,9 @@ class InformationGainAgent(Agent):
             curr_possible_count = 0
 
             for answer in self.possible_answers:
-                feedback = ''.join(wordle.get_feedback(guess, answer))
+                if guess == answer:
+                    continue
+                feedback = self.feedback_matrix[guess][answer]
 
                 for word in self.possible_answers:
                     if wordle.is_possible(guess, feedback, word):
@@ -81,9 +84,11 @@ class InformationGainAgent(Agent):
                 best_guesses = [guess]
         
         self.last_guess = random.choice(best_guesses)
+        print(self.last_guess, min_possible_count)
         return self.last_guess
 
     def recieve_feedback(self, status, feedback) -> None:
+        assert self.last_guess is not None
         temp = []
         for word in self.possible_answers:
             if wordle.is_possible(self.last_guess, feedback, word):
