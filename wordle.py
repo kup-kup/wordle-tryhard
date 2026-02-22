@@ -6,6 +6,41 @@ with open('valid_words.txt') as f:
 with open('valid_answers.txt') as f:
     VALID_ANSWERS = f.read().splitlines()
 
+def is_possible(guess, feedback, word: str) -> bool:
+    """check if the word is possible from feedback"""
+    assert len(feedback) == len(word) == len(guess), 'guess, feedback and word must be of the same length'
+
+    if feedback == get_feedback(guess, word):
+        return True
+    else:
+        return False
+
+def get_feedback(guess: str, answer: str) -> list[str]:
+    """get feedback from guess and answer"""
+    assert len(guess) == len(answer), 'guess and answer must be of the same length'
+    guess = guess.lower()
+
+    n = len(guess)
+    taken = [False]*n # specify which letters are used up for count constraint
+    feedback = ['b']*n
+    # b - black, g - green, y - yellow
+
+    for i in range(n):
+
+        # handle green
+        if guess[i] == answer[i]:
+            feedback[i] = 'g'
+            taken[i] = True
+            continue
+    
+        # handle yellow
+        for j in range(n): # loop answer
+            if guess[i] == answer[j] and not taken[j]:
+                feedback[i] = 'y'
+                taken[j] = True
+    
+    return feedback
+
 class Wordle:
     def __init__(
             self, 
@@ -14,11 +49,12 @@ class Wordle:
         ):
         
         self.max_turn = max_turn
+        self.turn = 0
         self.feedback = []
         self.guesses = []
         self.status = 'playing'
         self.word_length = 5 # no support for other lengths for now
-        assert answer is None or len(answer) == 5
+        assert answer is None or len(answer) == 5, 'answer must be of length 5'
 
         # initialize answer
         if answer is None:
@@ -26,28 +62,12 @@ class Wordle:
         else:
             self.answer = answer.lower()
 
-    def add_guess(self, guess):
-        assert len(self.guesses) < self.max_turn
-        assert len(guess) == self.word_length
-        guess = guess.lower()
+    def add_guess(self, guess: str):
+        assert self.turn <= self.max_turn, 'maximum turn reached'
+        assert len(guess) == self.word_length, 'guess must be of length 5'
+        assert guess in VALID_ANSWERS, 'invalid guess'
 
-        taken = [False] * self.word_length # specify which letters are used up for count constraint
-        new_feedback = ['b'] * self.word_length
-        # b - black, g - green, y - yellow
-
-        for i in range(self.word_length):
-
-            # handle green
-            if guess[i] == self.answer[i]:
-                new_feedback[i] = 'g'
-                taken[i] = True
-                continue
-        
-            # handle yellow
-            for j in range(self.word_length): # loop answer
-                if guess[i] == self.answer[j] and not taken[j]:
-                    new_feedback[i] = 'y'
-                    taken[j] = True
+        new_feedback = get_feedback(guess, self.answer)
 
         # update status
         if guess == self.answer:
@@ -56,6 +76,7 @@ class Wordle:
             self.status = 'lose'
         self.feedback.append(new_feedback)
         self.guesses.append(guess)
+        self.turn += 1
 
         return self.status, new_feedback
 
