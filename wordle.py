@@ -15,7 +15,7 @@ def is_possible(guess: str, feedback: str, word: str) -> bool:
     else:
         return False
 
-def get_feedback(guess: str, answer: str) -> list[str]:
+def get_feedback(guess: str, answer: str) -> str:
     """get feedback from guess and answer"""
     assert len(guess) == len(answer), 'guess and answer must be of the same length'
     guess = guess.lower()
@@ -39,7 +39,7 @@ def get_feedback(guess: str, answer: str) -> list[str]:
                 feedback[i] = 'y'
                 taken[j] = True
     
-    return feedback
+    return ''.join(feedback)
 
 class Wordle:
     def __init__(
