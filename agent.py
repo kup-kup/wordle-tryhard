@@ -1,7 +1,13 @@
 import wordle
 import random
 import utils
-from collections import defaultdict
+from collections import defaultdict, Counter
+from functools import lru_cache
+import numpy as np
+
+@lru_cache(None)
+def _feedback_cached(guess: str, answer: str):
+    return wordle.get_feedback(guess, answer)
 
 class Agent:
     def __init__(self) -> None:
@@ -45,46 +51,31 @@ class RandomAgent(Agent):
 class InformationGainAgent(Agent):
     """maximizes information gain, minimizes expected possible words"""
 
-    def __init__(self) -> None:
+    def __init__(self, seed=None) -> None:
         self.possible_answers = wordle.VALID_ANSWERS
-        self.feedback_matrix = self._get_feedback_matrix()
         self.last_guess = None
-    
-    def _get_feedback_matrix(self) -> dict:
-        """create all possible feedback, takes ~10s"""
-        res = defaultdict(defaultdict[str, str])
-        n = len(self.possible_answers)
-        for i in range(n):
-            word1 = self.possible_answers[i]
-            for j in range(i+1, n):
-                word2 = self.possible_answers[j]
-                res[word1][word2] = ''.join(wordle.get_feedback(word1, word2))
-                res[word2][word1] = ''.join(wordle.get_feedback(word2, word1))
-        return res
+        self.random = np.random.default_rng(seed)
 
-    def get_guess(self) -> str:
-        min_possible_count = len(self.possible_answers)
+    def get_guess(self, sample = 10) -> str:
+        """sample answers, calculate possible words for each guess, 
+        return guess with lowest possible words"""
+        min_possible_count = float('inf')
         best_guesses = []
 
+        sampled_answers = self.random.choice(self.possible_answers, size=min(sample, len(self.possible_answers)), replace=False)
         for guess in self.possible_answers:
-            curr_possible_count = 0
+            # partition current candidates by feedback for this guess
+            partitions = Counter(_feedback_cached(guess, w) for w in self.possible_answers)
+            # expected remaining size over sampled answers
+            possible_count = sum(partitions[_feedback_cached(guess, ans)] for ans in sampled_answers)
 
-            for answer in self.possible_answers:
-                if guess == answer:
-                    continue
-                feedback = self.feedback_matrix[guess][answer]
-
-                for word in self.possible_answers:
-                    if wordle.is_possible(guess, feedback, word):
-                        curr_possible_count += 1
-            
-            if curr_possible_count == min_possible_count:
-                best_guesses.append(guess)
-            elif curr_possible_count < min_possible_count:
+            if possible_count < min_possible_count:
+                min_possible_count = possible_count
                 best_guesses = [guess]
+            elif possible_count == min_possible_count:
+                best_guesses.append(guess)
         
-        self.last_guess = random.choice(best_guesses)
-        print(self.last_guess, min_possible_count)
+        self.last_guess = self.random.choice(best_guesses)
         return self.last_guess
 
     def recieve_feedback(self, status, feedback) -> None:
