@@ -68,23 +68,23 @@ class Wordle:
         assert guess in VALID_ANSWERS, 'invalid guess'
 
         feedback = get_feedback(guess, self.answer)
+        self.feedbacks.append(feedback)
+        self.guesses.append(guess)
+        self.turn += 1
 
         # update status
         if guess == self.answer:
             self.status = 'win'
         elif len(self.guesses) >= self.max_turn:
             self.status = 'lose'
-        self.feedbacks.append(feedback)
-        self.guesses.append(guess)
-        self.turn += 1
 
         return self.status, feedback
     
-    def get_score(self):
+    def get_reward(self):
         if self.status == 'lose':
             return -10
         if self.status == 'win':
-            return self.turn
+            return 10 - self.turn
         return 0
 
 if __name__ == "__main__":
